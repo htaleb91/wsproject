@@ -1,0 +1,7 @@
+D:\wsproject\publish\WsProjet.exe
+D:\wsproject\publish\appsettings.Development.json
+D:\wsproject\publish\appsettings.json
+D:\wsproject\publish\WsProjet.dll
+D:\wsproject\publish\WsProjet.deps.json
+D:\wsproject\publish\WsProjet.runtimeconfig.json
+D:\wsproject\publish\WsProjet.pdb

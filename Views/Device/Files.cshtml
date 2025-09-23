@@ -1,0 +1,43 @@
+@model IEnumerable<FileInfoModel>
+@{
+    var totalPages = ViewBag.TotalPages as int?;
+    var currentPage = ViewBag.CurrentPage as int?;
+    var deviceId = ViewBag.DeviceId as string;
+}
+
+<h2>Files for Device @deviceId</h2>
+<table class="table">
+    <tr>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Action</th>
+    </tr>
+    @foreach (var file in Model)
+    {
+        <tr>
+            <td>@file.Name</td>
+            <td>@file.Size</td>
+            <td>
+                <form asp-action="Download" method="post">
+                    <input type="hidden" name="deviceId" value="@deviceId" />
+                    <input type="hidden" name="fileId" value="@file.Id" />
+                    <button type="submit" class="btn btn-success">Download</button>
+                </form>
+            </td>
+        </tr>
+    }
+</table>
+
+@if (totalPages > 1)
+{
+    <nav>
+        <ul class="pagination">
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link" asp-action="Files" asp-route-deviceId="@deviceId" asp-route-page="@i">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

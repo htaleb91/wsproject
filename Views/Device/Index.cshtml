@@ -1,0 +1,20 @@
+@model IEnumerable<DeviceInfo>
+
+<h2>Connected Devices</h2>
+<table class="table">
+    <tr>
+        <th>Device ID</th>
+        <th>Actions</th>
+    </tr>
+    @foreach (var device in Model)
+    {
+        <tr>
+            <td>@device.Id</td>
+            <td>
+                <a asp-controller="Device" asp-action="Files" asp-route-deviceId="@device.Id" class="btn btn-primary">
+                    Retrieve Files
+                </a>
+            </td>
+        </tr>
+    }
+</table>
