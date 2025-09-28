@@ -31,6 +31,18 @@
 
         ws.onopen = () => {
           log("Connected to server.");
+          ws.send(
+            JSON.stringify({
+              type: "STATUS",
+              deviceId: deviceId,
+              uptime: "1h 23m",
+              heap: "512KB",
+              wifi_rssi: "-55dBm",
+              wifi_ip: "192.168.1.50",
+              connected: true,
+            })
+          );
+          log("Sent STATUS");
         };
 
         ws.onmessage = async (event) => {
@@ -64,7 +76,10 @@
                 const file = files.find((f) => f.name === msg.filename);
                 if (!file) {
                   ws.send(
-                    JSON.stringify({ type: "ERROR", message: "File not found" })
+                    JSON.stringify({
+                      type: "ERROR",
+                      message: "File not found",
+                    })
                   );
                   return;
                 }
@@ -116,7 +131,10 @@
                   log(`Deleted file: ${msg.filename}`);
                 } else {
                   ws.send(
-                    JSON.stringify({ type: "ERROR", message: "File not found" })
+                    JSON.stringify({
+                      type: "ERROR",
+                      message: "File not found",
+                    })
                   );
                 }
                 break;
@@ -131,6 +149,16 @@
                 );
                 log("Deleted all files");
                 break;
+              case "DISCONNECT":
+                ws.send(
+                  JSON.stringify({
+                    type: "success",
+                    message: "Disconnecting ...",
+                  })
+                );
+                log("Sent Success: ");
+                log("web socket closed disconnecting: ");
+                ws.close();
             }
           } else if (event.data instanceof ArrayBuffer) {
             log(`Received binary frame (${event.data.byteLength} bytes)`);

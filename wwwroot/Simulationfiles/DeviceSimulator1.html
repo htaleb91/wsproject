@@ -60,7 +60,6 @@
           .catch((err) => log("Disconnect fetch error: " + err));
       }
 
-
       function connectDevice() {
         // ws = new WebSocket(
         //   `ws://wqassurance-001-site2.ltempurl.com:80/ws/${deviceId}`
@@ -154,7 +153,14 @@
               ws.send(new ArrayBuffer(0));
               log("Sent FILE_END + empty binary frame.");
             }
-
+            if (msg.type === "DISCONNECT") {
+              JSON.stringify({
+                type: "SUCCESS",
+              });
+              log("Sent Success: ");
+              log("web socket closed disconnecting: ");
+              ws.close();
+            }
             if (msg.type === "ERROR") {
               log("Server reported error: " + msg.message);
             }

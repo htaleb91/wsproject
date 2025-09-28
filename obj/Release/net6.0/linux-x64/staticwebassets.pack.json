@@ -13,6 +13,10 @@
       "PackagePath": "staticwebassets\\Simulationfiles\\DeviceSimulator2.html"
     },
     {
+      "Id": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\newTest.html",
+      "PackagePath": "staticwebassets\\Simulationfiles\\newTest.html"
+    },
+    {
       "Id": "D:\\wsproject\\WsProjet\\wwwroot\\css\\site.css",
       "PackagePath": "staticwebassets\\css\\site.css"
     },

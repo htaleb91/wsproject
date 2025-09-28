@@ -15,7 +15,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/bin\\Debug\\net9.0\\WsProjet.dll.csproj",
+        "${workspaceFolder}/bin\\Debug\\net6.0\\WsProjet.dll.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],

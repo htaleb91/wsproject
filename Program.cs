@@ -75,7 +75,19 @@ app.Map("/ws/{deviceId}", async context =>
 
     var manager = context.RequestServices.GetRequiredService<DeviceManager>();
     manager.AddDevice(deviceId, ws);
+  
     var handler = context.RequestServices.GetRequiredService<DeviceWebSocketHandler>();
+    var device = manager.GetDevice(deviceId);
+    if (device != null)
+    {
+        if (!device.ReceiveLoopStarted)
+        {
+            device.ReceiveLoopStarted = true; // track so we don’t start multiple loops
+                                              // ?? Start background receive loop
+            _ = Task.Run(() => handler.StartReceiveLoopAsync(device, CancellationToken.None));
+        }
+        // _ = Task.Run(() => handler.StartReceiveLoopAsync(deviceId, CancellationToken.None));
+    }
     await handler.HandleAsync(ws, deviceId);
 
     Console.WriteLine($"Device connected: {deviceId}");
