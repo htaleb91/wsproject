@@ -230,12 +230,57 @@ public class DeviceController : Controller
         }
     }
 
+    [HttpPost]
+    public async Task<IActionResult> DisconnectDevice(string deviceId)
+    {
+        var device = _deviceManager.GetDevice(deviceId);
+        if (device == null || device.Socket.State != WebSocketState.Open) return NotFound("Device not connected.");
+        var ws = device.Socket;
+        var tcs = new TaskCompletionSource<IActionResult>();
+        async Task HandleResponse(WebSocketReceiveResult result, byte[] buffer)
+        {
+            if (result.MessageType != WebSocketMessageType.Text) return;
+            var msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            using var doc = JsonDocument.Parse(msg);
+            if (!doc.RootElement.TryGetProperty("type", out var typeProp)) return;
+            var type = typeProp.GetString() ?? "";
+            doc.RootElement.TryGetProperty("type", out var messageProp);
+            var message = messageProp.GetString() ?? "";
+            if (type == "success")
+            {
+                _deviceManager.RemoveDevice(deviceId);
+            }
+            else if (type == "ERROR")
+            {
+                var errMsg = doc.RootElement.GetProperty("message").GetString();
+                tcs.TrySetException(new Exception(errMsg));
+            }
+        }
+        var requestJson = "{\"type\":\"DISCONNECT\"}";
+        await ws.SendAsync(Encoding.UTF8.GetBytes(requestJson), WebSocketMessageType.Text, true, CancellationToken.None);
+        var buffer = new byte[16 * 1024]; while (!tcs.Task.IsCompleted)
+        {
+            var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            await HandleResponse(result, buffer);
+        }
+        try
+        {
+            return await tcs.Task;
+            // will throw if ERROR or Close was triggered 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            return StatusCode(500, $"Error: {ex.Message}");
+        }
+    }
 
     public async Task<IActionResult> DeleteFile(string deviceId, string fileId)
     {
         var device = _deviceManager.GetDevice(deviceId);
         if (device == null || device.Socket.State != WebSocketState.Open) return NotFound("Device not connected.");
-        var ws = device.Socket; var tcs = new TaskCompletionSource<IActionResult>();
+        var ws = device.Socket;
+        var tcs = new TaskCompletionSource<IActionResult>();
         var file = device.Files.FirstOrDefault(a => a.Id.Equals(fileId));
         async Task HandleResponse(WebSocketReceiveResult result, byte[] buffer)
         {
