@@ -7,6 +7,7 @@
   <body>
     <h2>WebSocket Device Simulator1</h2>
     <button onclick="connectDevice()">Connect Device</button>
+    <button onclick="disconnectDevice()">disConnect Device</button>
     <pre id="log"></pre>
 
     <script>
@@ -30,6 +31,7 @@
         let chunks = [];
         let remaining = size;
         let index = 0;
+        let url = "localhost";
         while (remaining > 0) {
           let sizeHere = Math.min(remaining, chunkSize);
           let arr = new Uint8Array(sizeHere);
@@ -44,12 +46,26 @@
         }
         return chunks;
       }
+      function disconnectDevice() {
+        ws = new WebSocket(`ws://${url}:5000/ws/disconnect/${deviceId}`);
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+        // Close the WebSocket
+        ws.close(1000, "Device disconnect requested");
+
+        // Optional: notify server via REST call
+        fetch(`http://${url}::5000/ws/disconnect/${deviceId}`)
+          .then((res) => res.text())
+          .then((msg) => log(msg))
+          .catch((err) => log("Disconnect fetch error: " + err));
+      }
+
 
       function connectDevice() {
         // ws = new WebSocket(
         //   `ws://wqassurance-001-site2.ltempurl.com:80/ws/${deviceId}`
-        // );
-        ws = new WebSocket(`ws://localhost:5010/ws/${deviceId}`);
+        // ); ws://127.0.0.0:5010/ws/SIM_DEVICE_001
+        ws = new WebSocket(`ws://170.9.35.49:5000/ws/${deviceId}`);
         ws.binaryType = "arraybuffer";
 
         ws.onopen = () => {

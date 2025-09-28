@@ -18,7 +18,16 @@ public class DeviceManager
 
     public void RemoveDevice(string deviceId)
     {
-        _devices.TryRemove(deviceId, out _);
+        if (_devices.TryRemove(deviceId, out var device))
+        {
+            device.Files.Clear(); // remove all files
+            Console.WriteLine($"Device {deviceId} removed and its files cleared.");
+        }
+    }
+
+    public void UpdateDeviceStatus(string deviceId, DeviceStatusInfo status)
+    {
+        _devices[deviceId].Status = status;
     }
 
     public DeviceInfo? GetDevice(string deviceId)
@@ -30,4 +39,5 @@ public class DeviceManager
     {
         return _devices.Values;
     }
+
 }

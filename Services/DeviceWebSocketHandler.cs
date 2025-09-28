@@ -14,10 +14,8 @@ public class DeviceWebSocketHandler
 
     public async Task HandleAsync(WebSocket socket, string deviceId)
     {
-        //var device = new DeviceInfo { Id = deviceId };
-        _deviceManager.AddDevice(deviceId, socket);
-
         var buffer = new byte[16 * 1024]; // 16 KB chunks
+
         try
         {
             while (socket.State == WebSocketState.Open)
@@ -33,11 +31,13 @@ public class DeviceWebSocketHandler
                 else if (result.MessageType == WebSocketMessageType.Text)
                 {
                     var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+
+                    // 🔹 Handle both auto-status and response-to-request
                     HandleMessage(deviceId, json);
                 }
                 else if (result.MessageType == WebSocketMessageType.Binary)
                 {
-                    // Handle file chunk upload (not covered here yet)
+                    // Handle file chunks (not shown here)
                 }
             }
         }
@@ -49,29 +49,130 @@ public class DeviceWebSocketHandler
 
     private void HandleMessage(string deviceId, string json)
     {
-        var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("type", out var type)) return;
-
-        if (type.GetString() == "FILE_LIST")
+        try
         {
-            var files = new List<FileInfoModel>();
-            foreach (var f in doc.RootElement.GetProperty("files").EnumerateArray())
-            {
-                files.Add(new FileInfoModel
-                {
-                    Id = f.GetProperty("id").GetString() ?? Guid.NewGuid().ToString(),
-                    Name = f.GetProperty("name").GetString() ?? "unknown",
-                    Size = f.GetProperty("size").GetInt64()
-                });
-            }
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
 
-            var device = _deviceManager.GetDevice(deviceId);
-            if (device != null)
+            if (root.TryGetProperty("type", out var typeProp))
             {
-                device.Files = files;
+                string type = typeProp.GetString() ?? "";
+
+                if (type == "STATUS")
+                {
+                    // 🔹 Parse into DeviceStatusInfo
+                    var status = new DeviceStatusInfo
+                    {
+                        Uptime = root.GetProperty("uptime").GetString() ?? "0",
+                        Heap = root.GetProperty("heap").GetString() ?? "0",
+                        Wifi_Rssi = root.GetProperty("wifi_rssi").GetString() ?? "0",
+                        Wifi_Ip = root.GetProperty("wifi_ip").GetString() ?? "0",
+                        Connected = root.GetProperty("connected").GetBoolean()
+                    };
+
+                    // 🔹 Save status in DeviceManager
+                    _deviceManager.UpdateDeviceStatus(deviceId, status);
+
+                    // Console.WriteLine($"[STATUS] Device {deviceId}: IP={status.Wifi_Ip}, RSSI={status.Wifi_Rssi}");
+                }
+                else
+                {
+                    Console.WriteLine($"[INFO] Device {deviceId} sent: {json}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[WARN] Unknown JSON from device {deviceId}: {json}");
             }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] Failed to parse device message: {ex.Message}");
+        }
     }
+
+
+    public async Task<DeviceStatusInfo> RequestDeviceStatusAsync(string deviceId)
+    {
+        var device = _deviceManager.GetDevice(deviceId);
+        if (device == null || device.Socket.State != WebSocketState.Open)
+            throw new Exception("Device not connected.");
+
+        var ws = device.Socket;
+        var tcs = new TaskCompletionSource<DeviceStatusInfo>();
+
+        async Task HandleResponse(WebSocketReceiveResult result, byte[] buffer)
+        {
+            if (result.MessageType != WebSocketMessageType.Text) return;
+
+            var msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            using var doc = JsonDocument.Parse(msg);
+
+            if (!doc.RootElement.TryGetProperty("type", out var typeProp)) return;
+            var type = typeProp.GetString() ?? "";
+
+            if (type == "STATUS")
+            {
+                var status = new DeviceStatusInfo
+                {
+                    Uptime = doc.RootElement.TryGetProperty("uptime", out var uptime) ? uptime.GetRawText() : null,
+                    Heap = doc.RootElement.TryGetProperty("heap", out var heap) ? heap.GetRawText() : null,
+                    Wifi_Rssi = doc.RootElement.TryGetProperty("wifi_rssi", out var rssi) ? rssi.GetRawText() : null,
+                    Wifi_Ip = doc.RootElement.TryGetProperty("wifi_ip", out var ip) ? ip.GetString() : null,
+                    Connected = doc.RootElement.TryGetProperty("connected", out var connected) && connected.GetBoolean()
+                };
+
+                // ✅ Update the property in DeviceInfo
+                device.Status = status;
+
+                tcs.TrySetResult(status);
+            }
+            else if (type == "ERROR")
+            {
+                var errMsg = doc.RootElement.GetProperty("message").GetString();
+                tcs.TrySetException(new Exception(errMsg));
+            }
+        }
+
+        // Send STATUS request
+        var requestJson = "{\"type\":\"STATUS\"}";
+        await ws.SendAsync(
+            Encoding.UTF8.GetBytes(requestJson),
+            WebSocketMessageType.Text,
+            true,
+            CancellationToken.None
+        );
+
+        var buffer = new byte[16 * 1024];
+        while (!tcs.Task.IsCompleted)
+        {
+            var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            await HandleResponse(result, buffer);
+        }
+
+        return await tcs.Task;
+    }
+
+
+    public async Task<(WebSocketMessageType type, byte[] data)> ReceiveFullMessage(WebSocket ws, CancellationToken ct)
+    {
+        using var ms = new MemoryStream();
+        var buffer = new byte[32 * 1024]; // bigger buffer for large chunks
+
+        WebSocketReceiveResult result;
+        do
+        {
+            result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
+            // Console.WriteLine(result.Count);
+            if (result.Count > 0)
+                ms.Write(buffer, 0, result.Count);
+        }
+        while (!result.EndOfMessage);
+
+        return (result.MessageType, ms.ToArray());
+    }
+
+    
 }
 
 

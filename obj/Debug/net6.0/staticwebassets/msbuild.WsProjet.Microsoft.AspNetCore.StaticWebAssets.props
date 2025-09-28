@@ -1146,8 +1146,8 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>o8bkqb3mk8</Fingerprint>
-      <Integrity>GHTHKLiy2DO4Vo/7voPBEcytVC23TNyCMXOghxo8/Ts=</Integrity>
+      <Fingerprint>exbreok7ut</Fingerprint>
+      <Integrity>3lwjl6mVyLvDgD0NsmwoURJhRUpyJsPHkG1gw37IT/0=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\Simulationfiles\DeviceSimulator1.html'))</OriginalItemSpec>
@@ -1164,11 +1164,29 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>qkssnkgbrl</Fingerprint>
-      <Integrity>qobzYIGYRptTgTY8ZFk3bfkpXNj1rmTzbZIuKmc7fG8=</Integrity>
+      <Fingerprint>8807s0df11</Fingerprint>
+      <Integrity>GNeeQxN893WKiJXWvOrgr6lZ1Xh0dXx//8yurMXqjkI=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\Simulationfiles\DeviceSimulator2.html'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\Simulationfiles\newTest.html'))">
+      <SourceType>Package</SourceType>
+      <SourceId>WsProjet</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/WsProjet</BasePath>
+      <RelativePath>Simulationfiles/newTest.html</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>x20litbb91</Fingerprint>
+      <Integrity>V7b/TEMulouU6ngXkjzdy9WcGDjMvALuPpUvvb69cd8=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\Simulationfiles\newTest.html'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\WsProjet.6smpfo3csc.bundle.scp.css'))">
       <SourceType>Package</SourceType>

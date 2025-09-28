@@ -1,20 +1,231 @@
-@model IEnumerable<DeviceInfo>
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Views/Shared/_LayoutNew.cshtml";
+}
 
-<h2>Connected Devices</h2>
-<table class="table">
-    <tr>
-        <th>Device ID</th>
-        <th>Actions</th>
-    </tr>
-    @foreach (var device in Model)
-    {
-        <tr>
-            <td>@device.Id</td>
-            <td>
-                <a asp-controller="Device" asp-action="Files" asp-route-deviceId="@device.Id" class="btn btn-primary">
-                    Retrieve Files
-                </a>
-            </td>
-        </tr>
-    }
-</table>
+<div class="row g-4 justify-content-center w-100">
+
+    <!-- Device Actions Card -->
+    <div class="col-12 col-md-10">
+        <div class="card shadow h-100 text-center">
+            <div class="card-header bg-primary text-white fw-bold">Device Actions</div>
+            <div class="card-body">
+
+                <!-- Device Select -->
+                <div class="row mb-3 align-items-center justify-content-center">
+                    <label for="deviceSelect" class="col-auto col-form-label fw-semibold">Select Device:</label>
+                    <div class="col-auto">
+                        <select id="deviceSelect" class="form-select">
+                            <option selected disabled value="">-- Loading Devices --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap gap-3 justify-content-center mb-4">
+                    <button class="btn btn-outline-primary" id="btnGetFiles" disabled>
+                        <i class="bi bi-folder-symlink"></i> Retrieve Files
+                    </button>
+                    <button class="btn btn-outline-secondary" id="btnGetStatus" disabled>
+                        <i class="bi bi-info-circle"></i> Get Status
+                    </button>
+                    <button class="btn btn-outline-danger" id="btnDeleteAll" disabled>
+                        <i class="bi bi-trash"></i> Delete All Files
+                    </button>
+                </div>
+
+                <!-- Device Status Card -->
+                <div class="card shadow-lg  border-0 my-3 p-3">
+                    <div class="card-body text-start">
+                        <p><strong>Status:</strong> <span id="deviceStatus"
+                                class="badge bg-secondary">Disconnected</span></p>
+                        <p><strong>Uptime:</strong> <span id="deviceUptime">-</span></p>
+                        <p><strong>Heap:</strong> <span id="deviceHeap">-</span></p>
+                        <p><strong>WiFi RSSI:</strong> <span id="deviceRssi">-</span></p>
+                        <p><strong>WiFi IP:</strong> <span id="deviceIp">-</span></p>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-outline-warning" id="btnDisconnect">
+                                <i class="bi bi-plug"></i> Disconnect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Files Table -->
+    <div class="col-12 col-md-10">
+        <div class="card shadow h-100 text-center">
+            <div class="card-header bg-dark text-white fw-bold">Files</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped table-bordered align-middle text-center">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>File Name</th>
+                                <th>Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        const deviceSelect = document.getElementById("deviceSelect");
+        const btnGetFiles = document.getElementById("btnGetFiles");
+        const btnGetStatus = document.getElementById("btnGetStatus");
+        const btnDeleteAll = document.getElementById("btnDeleteAll");
+        const deviceStatus = document.getElementById("deviceStatus");
+        const deviceUptime = document.getElementById("deviceUptime");
+        const deviceHeap = document.getElementById("deviceHeap");
+        const deviceRssi = document.getElementById("deviceRssi");
+        const deviceIp = document.getElementById("deviceIp");
+        const filesTable = document.getElementById("filesTable");
+
+        let selectedDevice = null;
+        let filesList = [];
+
+        async function loadDevices() {
+            try {
+                const res = await fetch("/Device/connected");
+                const devices = await res.json();
+                deviceSelect.innerHTML = `<option selected disabled value="">-- Choose Device --</option>`;
+                devices.forEach(d => {
+                    const option = document.createElement("option");
+                    option.value = d.id;
+                    option.innerText = d.id;
+                    deviceSelect.appendChild(option);
+                });
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        loadDevices();
+
+        deviceSelect.addEventListener("change", () => {
+            selectedDevice = deviceSelect.value;
+            btnGetFiles.disabled = !selectedDevice;
+            btnGetStatus.disabled = !selectedDevice;
+            btnDeleteAll.disabled = !selectedDevice;
+            filesTable.innerHTML = "";
+            resetStatusFields();
+        });
+
+        function resetStatusFields() {
+            deviceStatus.innerText = "Disconnected";
+            deviceStatus.className = "badge bg-secondary";
+            deviceUptime.innerText = "-";
+            deviceHeap.innerText = "-";
+            deviceRssi.innerText = "-";
+            deviceIp.innerText = "-";
+        }
+
+        async function updateStatus() {
+            try {
+                const res = await fetch(`/Device/status/${selectedDevice}`);
+                if (!res.ok) throw new Error("Failed to fetch status");
+                const status = await res.json();
+
+                deviceStatus.innerText = status.connected ? "Online" : "Offline";
+                deviceStatus.className = status.connected ? "badge bg-success" : "badge bg-secondary";
+                deviceUptime.innerText = status.uptime || "-";
+                deviceHeap.innerText = status.heap || "-";
+                deviceRssi.innerText = status.wifi_rssi || "-";
+                deviceIp.innerText = status.wifi_ip || "-";
+                showToast("Device status updated", "success");
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        async function getFiles() {
+            try {
+                const res = await fetch(`/Device/files/${selectedDevice}`);
+                if (!res.ok) throw new Error("Failed to fetch files");
+                filesList = await res.json();
+
+                filesTable.innerHTML = "";
+                filesList.forEach((f, i) => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                                    <td>${i + 1}</td>
+                                    <td>${f.name}</td>
+                                    <td>${f.size}</td>
+                                    <td>
+                                        <div class="d-flex gap-2 justify-content-center">
+                                            <button class="btn btn-sm btn-outline-success" onclick="downloadFile('${f.name}')">
+                                                <i class="bi bi-download"></i> Download
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteFile('${f.name}', ${i})">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                `;
+                    filesTable.appendChild(tr);
+                });
+
+                showToast("File list loaded", "success");
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        async function downloadFile(fileName) {
+            try {
+                const res = await fetch(`/Device/Download?deviceId=${selectedDevice}&fileId=${fileName}`, { method: "POST" });
+                if (!res.ok) throw new Error("Download failed");
+
+                const blob = await res.blob();
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                link.click();
+                showToast(`Downloading ${fileName}`, "success");
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        async function deleteFile(fileName, index) {
+            try {
+                const res = await fetch(`/Device/DeleteFile?deviceId=${selectedDevice}&fileId=${fileName}`, { method: "POST" });
+                if (!res.ok) throw new Error("Delete failed");
+                filesList.splice(index, 1);
+                getFiles();
+                showToast(`Deleted ${fileName}`, "success");
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        async function deleteAllFiles() {
+            try {
+                const res = await fetch(`/Device/DeleteAllFiles?deviceId=${selectedDevice}`, { method: "POST" });
+                if (!res.ok) throw new Error("Delete all failed");
+                filesList = [];
+                filesTable.innerHTML = "";
+                showToast("All files deleted", "success");
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        btnGetStatus.addEventListener("click", updateStatus);
+        btnGetFiles.addEventListener("click", getFiles);
+        btnDeleteAll.addEventListener("click", deleteAllFiles);
+
+        document.getElementById("btnDisconnect").addEventListener("click", resetStatusFields);
+    </script>
+}

@@ -1,0 +1,80 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Device Dashboard</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">Device Dashboard</a>
+        </div>
+    </nav>
+
+    <!-- Toast Container: FIXED in top-right of viewport -->
+    <div class=" top-0 end-0 p-3" style=" z-index: 1100; ">
+        <div id="toastContainer" class="toast-container position-fixed"></div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container my-4 flex-grow-1 d-flex flex-column align-items-center justify-content-start text-center">
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light text-center py-3 mt-auto">
+        <p class="mb-0">&copy; @DateTime.Now.Year - Device Dashboard</p>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Toast Helper -->
+    <script>
+        function showToast(message, type = "info") {
+            const colors = {
+                success: "bg-success text-white",
+                error: "bg-danger text-white",
+                info: "bg-primary text-white",
+                warning: "bg-warning text-dark"
+            };
+            const toastContainer = document.getElementById("toastContainer");
+            const toastEl = document.createElement("div");
+            toastEl.className = `toast align-items-center text-start ${colors[type] || colors.info}`;
+            toastEl.setAttribute("role", "alert");
+            toastEl.setAttribute("aria-live", "assertive");
+            toastEl.setAttribute("aria-atomic", "true");
+
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+
+            toastContainer.appendChild(toastEl);
+            const bsToast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            bsToast.show();
+
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+
+</html>

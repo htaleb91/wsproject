@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "GYIRoZ01uj+tnMTQjQOXkkmxieCJUFaUl8L2N5hYjTc=",
+  "Hash": "HRuxSg94QeZl9mvhcofsJL7CMjrLXlaAg572ps7GhyQ=",
   "Source": "WsProjet",
   "BasePath": "_content/WsProjet",
   "Mode": "Default",
@@ -1396,8 +1396,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "Fingerprint": "o8bkqb3mk8",
-      "Integrity": "GHTHKLiy2DO4Vo/7voPBEcytVC23TNyCMXOghxo8/Ts=",
+      "Fingerprint": "exbreok7ut",
+      "Integrity": "3lwjl6mVyLvDgD0NsmwoURJhRUpyJsPHkG1gw37IT/0=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\Simulationfiles\\DeviceSimulator1.html"
@@ -1417,11 +1417,32 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "Fingerprint": "qkssnkgbrl",
-      "Integrity": "qobzYIGYRptTgTY8ZFk3bfkpXNj1rmTzbZIuKmc7fG8=",
+      "Fingerprint": "8807s0df11",
+      "Integrity": "GNeeQxN893WKiJXWvOrgr6lZ1Xh0dXx//8yurMXqjkI=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\Simulationfiles\\DeviceSimulator2.html"
+    },
+    {
+      "Identity": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\newTest.html",
+      "SourceId": "WsProjet",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\wsproject\\WsProjet\\wwwroot\\",
+      "BasePath": "_content/WsProjet",
+      "RelativePath": "Simulationfiles/newTest#[.{fingerprint}]?.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "x20litbb91",
+      "Integrity": "V7b/TEMulouU6ngXkjzdy9WcGDjMvALuPpUvvb69cd8=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\Simulationfiles\\newTest.html"
     }
   ],
   "Endpoints": [
@@ -6592,6 +6613,51 @@
       ]
     },
     {
+      "Route": "Simulationfiles/DeviceSimulator1.exbreok7ut.html",
+      "AssetFile": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\DeviceSimulator1.html",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "6403"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"3lwjl6mVyLvDgD0NsmwoURJhRUpyJsPHkG1gw37IT/0=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 27 Sep 2025 14:20:08 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "exbreok7ut"
+        },
+        {
+          "Name": "label",
+          "Value": "Simulationfiles/DeviceSimulator1.html"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-3lwjl6mVyLvDgD0NsmwoURJhRUpyJsPHkG1gw37IT/0="
+        }
+      ]
+    },
+    {
       "Route": "Simulationfiles/DeviceSimulator1.html",
       "AssetFile": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\DeviceSimulator1.html",
       "Selectors": [],
@@ -6602,7 +6668,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "5730"
+          "Value": "6403"
         },
         {
           "Name": "Content-Type",
@@ -6610,11 +6676,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"GHTHKLiy2DO4Vo/7voPBEcytVC23TNyCMXOghxo8/Ts=\""
+          "Value": "\"3lwjl6mVyLvDgD0NsmwoURJhRUpyJsPHkG1gw37IT/0=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 20:46:48 GMT"
+          "Value": "Sat, 27 Sep 2025 14:20:08 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -6624,13 +6690,13 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-GHTHKLiy2DO4Vo/7voPBEcytVC23TNyCMXOghxo8/Ts="
+          "Value": "sha256-3lwjl6mVyLvDgD0NsmwoURJhRUpyJsPHkG1gw37IT/0="
         }
       ]
     },
     {
-      "Route": "Simulationfiles/DeviceSimulator1.o8bkqb3mk8.html",
-      "AssetFile": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\DeviceSimulator1.html",
+      "Route": "Simulationfiles/DeviceSimulator2.8807s0df11.html",
+      "AssetFile": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\DeviceSimulator2.html",
       "Selectors": [],
       "ResponseHeaders": [
         {
@@ -6639,7 +6705,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "5730"
+          "Value": "4078"
         },
         {
           "Name": "Content-Type",
@@ -6647,11 +6713,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"GHTHKLiy2DO4Vo/7voPBEcytVC23TNyCMXOghxo8/Ts=\""
+          "Value": "\"GNeeQxN893WKiJXWvOrgr6lZ1Xh0dXx//8yurMXqjkI=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 20:46:48 GMT"
+          "Value": "Mon, 22 Sep 2025 22:01:47 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -6661,15 +6727,15 @@
       "EndpointProperties": [
         {
           "Name": "fingerprint",
-          "Value": "o8bkqb3mk8"
+          "Value": "8807s0df11"
         },
         {
           "Name": "label",
-          "Value": "Simulationfiles/DeviceSimulator1.html"
+          "Value": "Simulationfiles/DeviceSimulator2.html"
         },
         {
           "Name": "integrity",
-          "Value": "sha256-GHTHKLiy2DO4Vo/7voPBEcytVC23TNyCMXOghxo8/Ts="
+          "Value": "sha256-GNeeQxN893WKiJXWvOrgr6lZ1Xh0dXx//8yurMXqjkI="
         }
       ]
     },
@@ -6684,7 +6750,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "4117"
+          "Value": "4078"
         },
         {
           "Name": "Content-Type",
@@ -6692,11 +6758,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"qobzYIGYRptTgTY8ZFk3bfkpXNj1rmTzbZIuKmc7fG8=\""
+          "Value": "\"GNeeQxN893WKiJXWvOrgr6lZ1Xh0dXx//8yurMXqjkI=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 20:40:31 GMT"
+          "Value": "Mon, 22 Sep 2025 22:01:47 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -6706,13 +6772,13 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-qobzYIGYRptTgTY8ZFk3bfkpXNj1rmTzbZIuKmc7fG8="
+          "Value": "sha256-GNeeQxN893WKiJXWvOrgr6lZ1Xh0dXx//8yurMXqjkI="
         }
       ]
     },
     {
-      "Route": "Simulationfiles/DeviceSimulator2.qkssnkgbrl.html",
-      "AssetFile": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\DeviceSimulator2.html",
+      "Route": "Simulationfiles/newTest.html",
+      "AssetFile": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\newTest.html",
       "Selectors": [],
       "ResponseHeaders": [
         {
@@ -6721,7 +6787,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "4117"
+          "Value": "4917"
         },
         {
           "Name": "Content-Type",
@@ -6729,11 +6795,48 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"qobzYIGYRptTgTY8ZFk3bfkpXNj1rmTzbZIuKmc7fG8=\""
+          "Value": "\"V7b/TEMulouU6ngXkjzdy9WcGDjMvALuPpUvvb69cd8=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 20:40:31 GMT"
+          "Value": "Sun, 28 Sep 2025 09:27:02 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-V7b/TEMulouU6ngXkjzdy9WcGDjMvALuPpUvvb69cd8="
+        }
+      ]
+    },
+    {
+      "Route": "Simulationfiles/newTest.x20litbb91.html",
+      "AssetFile": "D:\\wsproject\\WsProjet\\wwwroot\\Simulationfiles\\newTest.html",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "4917"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/html"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"V7b/TEMulouU6ngXkjzdy9WcGDjMvALuPpUvvb69cd8=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sun, 28 Sep 2025 09:27:02 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -6743,15 +6846,15 @@
       "EndpointProperties": [
         {
           "Name": "fingerprint",
-          "Value": "qkssnkgbrl"
+          "Value": "x20litbb91"
         },
         {
           "Name": "label",
-          "Value": "Simulationfiles/DeviceSimulator2.html"
+          "Value": "Simulationfiles/newTest.html"
         },
         {
           "Name": "integrity",
-          "Value": "sha256-qobzYIGYRptTgTY8ZFk3bfkpXNj1rmTzbZIuKmc7fG8="
+          "Value": "sha256-V7b/TEMulouU6ngXkjzdy9WcGDjMvALuPpUvvb69cd8="
         }
       ]
     },
@@ -6778,7 +6881,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 19:33:49 GMT"
+          "Value": "Fri, 26 Sep 2025 23:55:51 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -6823,7 +6926,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 19:33:49 GMT"
+          "Value": "Fri, 26 Sep 2025 23:55:51 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -6868,7 +6971,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 19:33:49 GMT"
+          "Value": "Fri, 26 Sep 2025 23:55:51 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -6905,7 +7008,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 22 Sep 2025 19:33:49 GMT"
+          "Value": "Fri, 26 Sep 2025 23:55:51 GMT"
         },
         {
           "Name": "Cache-Control",
