@@ -1146,8 +1146,8 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>exbreok7ut</Fingerprint>
-      <Integrity>3lwjl6mVyLvDgD0NsmwoURJhRUpyJsPHkG1gw37IT/0=</Integrity>
+      <Fingerprint>ycnnwp0b1a</Fingerprint>
+      <Integrity>/kU7e4dt3d7vPbI8V/++82Q/m6QWMzrmsEZzOPAG8+Y=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\Simulationfiles\DeviceSimulator1.html'))</OriginalItemSpec>
@@ -1182,8 +1182,8 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>7rrhnnwc67</Fingerprint>
-      <Integrity>w9kt74DV4SZFlUHgmB5nyojqmuY75oIypJQ7jbwvECI=</Integrity>
+      <Fingerprint>4to6swxslo</Fingerprint>
+      <Integrity>GO8LYr6EVVcOANey8+1nkQEm53VAyokS0913+D5+rlw=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\Simulationfiles\newTest.html'))</OriginalItemSpec>

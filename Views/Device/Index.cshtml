@@ -119,7 +119,7 @@
             btnGetStatus.disabled = !selectedDevice;
             btnDeleteAll.disabled = !selectedDevice;
             filesTable.innerHTML = "";
-            updateStatus();
+            updateLocalStatus();
         });
 
         function resetStatusFields() {
@@ -130,7 +130,25 @@
             deviceRssi.innerText = "-";
             deviceIp.innerText = "-";
         }
+        async function updateLocalStatus(){
+             try {
+                const res = await fetch(`/Device/localstatus/${selectedDevice}`);
+                console.log("inside update local status")
+                if (!res.ok) throw new Error("Failed to fetch status");
+                const status = await res.json();
 
+
+                deviceStatus.innerText = status.connected ? "Online" : "Offline";
+                deviceStatus.className = status.connected ? "badge bg-success" : "badge bg-secondary";
+                deviceUptime.innerText = status.uptime || "-";
+                deviceHeap.innerText = status.heap || "-";
+                deviceRssi.innerText = status.wifi_Rssi || "-";
+                deviceIp.innerText = status.wifi_Ip || "-";
+                showToast("Device status updated", "success");
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
         async function updateStatus() {
             try {
                 const res = await fetch(`/Device/status/${selectedDevice}`);
@@ -187,7 +205,7 @@
 
         async function downloadFile(fileName) {
             try {
-                const res = await fetch(`/Device/Download?deviceId=${selectedDevice}&fileId=${fileName}`, { method: "POST" });
+                const res = await fetch(`/Device/Download?deviceId=${selectedDevice}&filename=${fileName}`);
                 if (!res.ok) throw new Error("Download failed");
 
                 const blob = await res.blob();

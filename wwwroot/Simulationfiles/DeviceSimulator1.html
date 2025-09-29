@@ -31,7 +31,7 @@
         let chunks = [];
         let remaining = size;
         let index = 0;
-        let url = "localhost";
+        let url = "170.9.35.49";
         while (remaining > 0) {
           let sizeHere = Math.min(remaining, chunkSize);
           let arr = new Uint8Array(sizeHere);
@@ -104,48 +104,48 @@
 
               await new Promise((r) => setTimeout(r, 100)); // simulate small delay
 
-              // Send binary chunks
-              let chunks = [];
-              let remaining = file.size;
-              let index = 0;
-              let chunckSize = 16384;
-              while (remaining > 0) {
-                let sizeHere = Math.min(remaining, chunckSize);
-                let arr = new Uint8Array(sizeHere);
-                for (let i = 0; i < sizeHere; i++)
-                  arr[i] = Math.floor(Math.random() * 256);
-                // chunks.push({ index, data: arr });
-                // log(
-                //   arr + "\n ========================================================="
-                // );
-                remaining -= sizeHere;
+              // // Send binary chunks
+              // let chunks = [];
+              // let remaining = file.size;
+              // let index = 0;
+              // let chunckSize = 4096;
+              // while (remaining > 0) {
+              //   let sizeHere = Math.min(remaining, chunckSize);
+              //   let arr = new Uint8Array(sizeHere);
+              //   for (let i = 0; i < sizeHere; i++)
+              //     arr[i] = Math.floor(Math.random() * 256);
+              //   // chunks.push({ index, data: arr });
+              //   // log(
+              //   //   arr + "\n ========================================================="
+              //   // );
+              //   remaining -= sizeHere;
 
-                if (arr.length === 0) continue;
-                let buffer = new Uint8Array(4 + arr.length);
-                log(`buffer size is : ${4 + arr.length} Bytes`);
-                buffer[0] = (index >> 24) & 0xff;
-                buffer[1] = (index >> 16) & 0xff;
-                buffer[2] = (index >> 8) & 0xff;
-                buffer[3] = index & 0xff;
-                buffer.set(arr, 4);
+              //   if (arr.length === 0) continue;
+              //   let buffer = new Uint8Array(4 + arr.length);
+              //   log(`buffer size is : ${4 + arr.length} Bytes`);
+              //   buffer[0] = (index >> 24) & 0xff;
+              //   buffer[1] = (index >> 16) & 0xff;
+              //   buffer[2] = (index >> 8) & 0xff;
+              //   buffer[3] = index & 0xff;
+              //   buffer.set(arr, 4);
+              //   await ws.send(buffer);
+              //   log(`Sent chunk ${index} (${arr.length} bytes)`);
+              //   index++;
+              //   await new Promise((r) => setTimeout(r, 10));
+
+              const chunks = splitFile(file.size);
+              for (let c of chunks) {
+                if (c.data.length === 0) continue;
+                let buffer = new Uint8Array(4 + c.data.length);
+                log(`buffersize is : ${4 + c.data.length} Bytes`);
+                buffer[0] = (c.index >> 24) & 0xff;
+                buffer[1] = (c.index >> 16) & 0xff;
+                buffer[2] = (c.index >> 8) & 0xff;
+                buffer[3] = c.index & 0xff;
+                buffer.set(c.data, 4);
                 await ws.send(buffer);
-                log(`Sent chunk ${index} (${arr.length} bytes)`);
-                index++;
+                log(`Sent chunk ${c.index} (${c.data.length} bytes)`);
                 await new Promise((r) => setTimeout(r, 10));
-
-                // const chunks = splitFile(file.size);
-                // for (let c of chunks) {
-                // if (c.data.length === 0) continue;
-                // let buffer = new Uint8Array(4 + c.data.length);
-                // log(`buffersize is : ${4 + c.data.length} Bytes`);
-                // buffer[0] = (c.index >> 24) & 0xff;
-                // buffer[1] = (c.index >> 16) & 0xff;
-                // buffer[2] = (c.index >> 8) & 0xff;
-                // buffer[3] = c.index & 0xff;
-                // buffer.set(c.data, 4);
-                // await ws.send(buffer);
-                // log(`Sent chunk ${c.index} (${c.data.length} bytes)`);
-                // await new Promise((r) => setTimeout(r, 10));
               }
 
               // Send FILE_END + empty binary frame
