@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebSocket Device Simulator1</title>
+  </head>
+  <body>
+    <h2>WebSocket Device Simulator1</h2>
+    <button onclick="connectDevice()">Connect Device</button>
+    <button onclick="disconnectDevice()">disConnect Device</button>
+    <pre id="log"></pre>
+
+    <script>
+      const logEl = document.getElementById("log");
+      function log(msg) {
+        logEl.textContent += msg + "\n";
+      }
+
+      let ws;
+      let deviceId = "SIM_DEVICE_001";
+
+      // Sample file list
+      let files = [
+        { id: "1", name: "log1.bin", size: 12345 },
+        { id: "2", name: "cfg.json", size: 987 },
+        { id: "3", name: "report.txt", size: 1242880 },
+      ];
+
+      // Split file into chunks
+      async function splitFile(size, chunkSize = 16384) {
+        let chunks = [];
+        let remaining = size;
+        let index = 0;
+        let url = "170.9.35.49";
+        while (remaining > 0) {
+          let sizeHere = Math.min(remaining, chunkSize);
+          let arr = new Uint8Array(sizeHere);
+          for (let i = 0; i < sizeHere; i++)
+            arr[i] = Math.floor(Math.random() * 256);
+          chunks.push({ index, data: arr });
+          log(
+            arr + "\n ========================================================="
+          );
+          remaining -= sizeHere;
+          index++;
+        }
+        return chunks;
+      }
+      function disconnectDevice() {
+        ws = new WebSocket(`ws://${url}:5000/ws/disconnect/${deviceId}`);
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+        // Close the WebSocket
+        ws.close(1000, "Device disconnect requested");
+
+        // Optional: notify server via REST call
+        fetch(`http://${url}::5000/ws/disconnect/${deviceId}`)
+          .then((res) => res.text())
+          .then((msg) => log(msg))
+          .catch((err) => log("Disconnect fetch error: " + err));
+      }
+
+      function connectDevice() {
+        // ws = new WebSocket(
+        //   `ws://wqassurance-001-site2.ltempurl.com:80/ws/${deviceId}`
+        // ); ws://127.0.0.0:5010/ws/SIM_DEVICE_001
+        ws = new WebSocket(`ws://170.9.35.49:5000/ws/${deviceId}`);
+        ws.binaryType = "arraybuffer";
+
+        ws.onopen = () => {
+          log("Connected to server.");
+          // Send FILE_LIST automatically on connect
+          ws.send(JSON.stringify({ type: "FILE_LIST", files }));
+          log("Sent FILE_LIST to server.");
+        };
+
+        ws.onmessage = async (event) => {
+          // Handle text messages
+          if (typeof event.data === "string") {
+            const msg = JSON.parse(event.data);
+            log("Received: " + JSON.stringify(msg));
+
+            // Handle download request
+            if (msg.type === "REQUEST_FILE") {
+              const file = files.find((f) => f.name === msg.filename);
+              if (!file) {
+                ws.send(
+                  JSON.stringify({ type: "ERROR", message: "File not found" })
+                );
+                return;
+              }
+
+              log(`Received REQUEST_FILE for ${file.name}`);
+
+              // Send FILE_START
+              ws.send(
+                JSON.stringify({
+                  type: "FILE_START",
+                  filename: file.name,
+                  size: file.size,
+                })
+              );
+              log(`Sent FILE_START for ${file.name}`);
+
+              await new Promise((r) => setTimeout(r, 100)); // simulate small delay
+
+              // // Send binary chunks
+              // let chunks = [];
+              // let remaining = file.size;
+              // let index = 0;
+              // let chunckSize = 4096;
+              // while (remaining > 0) {
+              //   let sizeHere = Math.min(remaining, chunckSize);
+              //   let arr = new Uint8Array(sizeHere);
+              //   for (let i = 0; i < sizeHere; i++)
+              //     arr[i] = Math.floor(Math.random() * 256);
+              //   // chunks.push({ index, data: arr });
+              //   // log(
+              //   //   arr + "\n ========================================================="
+              //   // );
+              //   remaining -= sizeHere;
+
+              //   if (arr.length === 0) continue;
+              //   let buffer = new Uint8Array(4 + arr.length);
+              //   log(`buffer size is : ${4 + arr.length} Bytes`);
+              //   buffer[0] = (index >> 24) & 0xff;
+              //   buffer[1] = (index >> 16) & 0xff;
+              //   buffer[2] = (index >> 8) & 0xff;
+              //   buffer[3] = index & 0xff;
+              //   buffer.set(arr, 4);
+              //   await ws.send(buffer);
+              //   log(`Sent chunk ${index} (${arr.length} bytes)`);
+              //   index++;
+              //   await new Promise((r) => setTimeout(r, 10));
+
+              const chunks = splitFile(file.size);
+              for (let c of chunks) {
+                if (c.data.length === 0) continue;
+                let buffer = new Uint8Array(4 + c.data.length);
+                log(`buffersize is : ${4 + c.data.length} Bytes`);
+                buffer[0] = (c.index >> 24) & 0xff;
+                buffer[1] = (c.index >> 16) & 0xff;
+                buffer[2] = (c.index >> 8) & 0xff;
+                buffer[3] = c.index & 0xff;
+                buffer.set(c.data, 4);
+                await ws.send(buffer);
+                log(`Sent chunk ${c.index} (${c.data.length} bytes)`);
+                await new Promise((r) => setTimeout(r, 10));
+              }
+
+              // Send FILE_END + empty binary frame
+              ws.send(JSON.stringify({ type: "FILE_END" }));
+              ws.send(new ArrayBuffer(0));
+              log("Sent FILE_END + empty binary frame.");
+            }
+            if (msg.type === "DISCONNECT") {
+              JSON.stringify({
+                type: "SUCCESS",
+              });
+              log("Sent Success: ");
+              log("web socket closed disconnecting: ");
+              ws.close();
+            }
+            if (msg.type === "ERROR") {
+              log("Server reported error: " + msg.message);
+            }
+          } else if (event.data instanceof ArrayBuffer) {
+            log(
+              "Received binary frame from server (length=" +
+                event.data.byteLength +
+                ")"
+            );
+          }
+        };
+
+        ws.onclose = () => log("WebSocket closed.");
+        ws.onerror = (err) => log("WebSocket error: " + err.message);
+      }
+    </script>
+  </body>
+</html>

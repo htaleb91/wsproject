@@ -237,7 +237,7 @@
                 if (!res.ok) throw new Error(res.message);
                 @* filesList.splice(index, 1);
                 getFiles(); *@
-                    loadDevices();
+                loadDevices();
                 resetStatusFields();
                 showToast(`Disconnecting ${deviceId}`, "succeed");
             } catch (err) {
@@ -249,7 +249,7 @@
         async function deleteAllFiles() {
             try {
                 const res = await fetch(`/Device/DeleteAllFiles?deviceId=${selectedDevice}`, { method: "POST" });
-                if (!res.ok) throw new Error("Delete all failed");
+                if (!res.ok) throw new Error(`Delete all failed${res.message}`);
                 filesList = [];
                 filesTable.innerHTML = "";
                 showToast("All files deleted", "success");

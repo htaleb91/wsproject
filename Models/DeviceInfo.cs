@@ -5,6 +5,7 @@ public class DeviceInfo
     public string Id { get; set; } = string.Empty;
     public WebSocket? Socket { get; set; }
     public bool ReceiveLoopStarted { get; set; }
+    public bool EmptyMessageRecieved { get; set; }
     public DeviceStatusInfo? Status { get; set; }
     public List<FileInfoModel> Files { get; set; } = new();
 }

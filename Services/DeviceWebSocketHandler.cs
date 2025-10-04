@@ -5,6 +5,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 public class DeviceWebSocketHandler
 {
@@ -73,15 +74,26 @@ public class DeviceWebSocketHandler
                     result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
                     if (result.MessageType == WebSocketMessageType.Close)
                         throw new WebSocketException("Socket closed.");
+                    if (result.Count == 0 || buffer[0] == 0x00)
+                    {
+                        Console.WriteLine("Received empty chunk - end of file confirmation.");
+                        device.EmptyMessageRecieved = true;
+                        break;
+                        // Handle end-of-file logic here
+                    }
                     ms.Write(buffer, 0, result.Count);
                 } while (!result.EndOfMessage);
-
+                if (ms.Length == 0)
+                {
+                    // Nothing to parse
+                    continue; // go to next receive
+                }
                 var msg = Encoding.UTF8.GetString(ms.ToArray());
                 Console.WriteLine($"Received from {device.Id}: {msg}");
 
                 using var doc = JsonDocument.Parse(msg);
                 var root = doc.RootElement;
-
+                
                 if (root.ValueKind == JsonValueKind.Array)
                 {
                     // File list response
@@ -271,23 +283,28 @@ public class DeviceWebSocketHandler
                 Message = doc.RootElement.TryGetProperty("message", out var m) ? m.GetString() : null
             });
     }
-
     public async Task<FileDownloadResult> DownloadFileAsync(string deviceId, string fileName, string fileId)
     {
-        var ws = _deviceManager.GetDevice(deviceId)?.Socket
-                 ?? throw new Exception("Device not connected.");
+        //var count = _pendingRequests.Count(a => a.Key.Equals("FILE") && a.Value.Equals(deviceId));
+        if (_pendingRequests.ContainsKey(("FILE", deviceId)))
+        {
+          
+            throw new Exception("There is a download in progress");
+        }
+        var device = _deviceManager.GetDevice(deviceId)
+                     ?? throw new Exception("Device not connected.");
+        var ws = device.Socket;
 
-        // Use TaskCompletionSource<object> to match _pendingRequests dictionary
-        var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Store chunks by index
         var chunks = new ConcurrentDictionary<int, byte[]>();
-        var failedChunks = new HashSet<int>();
-        bool fileEnd = false;
         string? receivedFileName = null;
+        bool fileEnd = false;
 
-        // Register pending request (boxed)
+        // TaskCompletionSource to await final file
+        var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
         _pendingRequests[("FILE", deviceId)] = tcs;
 
-        // Send REQUEST_FILE to device
+        // Send REQUEST_FILE
         var requestJson = $"{{\"type\":\"REQUEST_FILE\",\"filename\":\"{fileName}\"}}";
         await ws.SendAsync(Encoding.UTF8.GetBytes(requestJson), WebSocketMessageType.Text, true, CancellationToken.None);
 
@@ -299,91 +316,68 @@ public class DeviceWebSocketHandler
                 {
                     var (msgType, data) = await ReceiveFullMessage(ws, CancellationToken.None);
 
-                    if (msgType == WebSocketMessageType.Text)
+                    switch (msgType)
                     {
-                        var msg = Encoding.UTF8.GetString(data);
-                        using var doc = JsonDocument.Parse(msg);
-                        var type = doc.RootElement.GetProperty("type").GetString();
+                        case WebSocketMessageType.Text:
+                            if (data.Length == 0) break;
 
-                        switch (type)
-                        {
-                            case "FILE_START":
-                                receivedFileName = doc.RootElement.GetProperty("filename").GetString();
-                                var ack = "{\"type\":\"FILE_START_ACK\"}";
-                                await ws.SendAsync(Encoding.UTF8.GetBytes(ack), WebSocketMessageType.Text, true, CancellationToken.None);
-                                break;
+                            var msg = Encoding.UTF8.GetString(data);
+                             var doc = JsonDocument.Parse(msg);
+                            var type = doc.RootElement.GetProperty("type").GetString();
 
-                            case "FILE_END":
-                                fileEnd = true;
-
-                                // If no missing chunks, we can assemble the file immediately
-                                if (failedChunks.Count == 0 && !tcs.Task.IsCompleted)
-                                {
-                                    var fileData = chunks.OrderBy(c => c.Key).SelectMany(c => c.Value).ToArray();
-                                    tcs.TrySetResult((object)new FileDownloadResult
-                                    {
-                                        FileName = receivedFileName ?? fileName,
-                                        Data = fileData
-                                    });
-
-                                    // Send COMPLETE to device
-                                    var complete = $"{{\"type\":\"COMPLETE\",\"fileId\":{fileId}}}";
-                                    await ws.SendAsync(Encoding.UTF8.GetBytes(complete), WebSocketMessageType.Text, true, CancellationToken.None);
-                                }
-                                break;
-
-                            case "ack":
-                                // Optionally handle ACK messages; file may already be completed
-                                break;
-
-                            case "ERROR":
-                                tcs.TrySetException(new Exception("Device error: " + doc.RootElement.GetProperty("message").GetString()));
-                                break;
-                        }
-                    }
-                    else if (msgType == WebSocketMessageType.Binary)
-                    {
-                        if (data.Length == 0)
-                        {
-                            // Empty binary frame signals secondary completion
-                            if (fileEnd)
+                            switch (type)
                             {
-                                if (failedChunks.Count == 0 && !tcs.Task.IsCompleted)
-                                {
-                                    var fileData = chunks.OrderBy(c => c.Key).SelectMany(c => c.Value).ToArray();
-                                    tcs.TrySetResult((object)new FileDownloadResult
+                                case "FILE_START":
+                                    receivedFileName = doc.RootElement.GetProperty("filename").GetString();
+                                    var ack = "{\"type\":\"FILE_START_ACK\"}";
+                                    await ws.SendAsync(Encoding.UTF8.GetBytes(ack), WebSocketMessageType.Text, true, CancellationToken.None);
+                                    break;
+
+                                case "FILE_END":
+                                    fileEnd = true;
+
+                                    //if (chunks.Count == 0)
+                                    //    tcs.TrySetException(new Exception("No file chunks received."));
+                                    //else
                                     {
-                                        FileName = receivedFileName ?? fileName,
-                                        Data = fileData
-                                    });
+                                        var fileData = chunks.OrderBy(c => c.Key)
+                                                             .SelectMany(c => c.Value)
+                                                             .ToArray();
+                                        tcs.TrySetResult(new FileDownloadResult
+                                        {
+                                            FileName = receivedFileName ?? fileName,
+                                            Data = fileData
+                                        });
 
-                                    var complete = $"{{\"type\":\"COMPLETE\",\"fileId\":{fileId}}}";
-                                    await ws.SendAsync(Encoding.UTF8.GetBytes(complete), WebSocketMessageType.Text, true, CancellationToken.None);
-                                }
-                                else if (failedChunks.Count > 0)
-                                {
-                                    // Retry missing chunks
-                                    string retryJson = JsonSerializer.Serialize(failedChunks);
-                                    var retrySend = $"{{\"type\":\"RETRY\",\"chunks\":{retryJson}}}";
-                                    await ws.SendAsync(Encoding.UTF8.GetBytes(retrySend), WebSocketMessageType.Text, true, CancellationToken.None);
+                                        // Notify device
+                                        var complete = $"{{\"type\":\"COMPLETE\",\"fileId\":{fileId}}}";
+                                        await ws.SendAsync(Encoding.UTF8.GetBytes(complete), WebSocketMessageType.Text, true, CancellationToken.None);
+                                    }
+                                    break;
 
-                                    // Clear failedChunks for next retry
-                                    failedChunks.Clear();
-                                }
+                                case "ERROR":
+                                    tcs.TrySetException(new Exception("Device error: " +
+                                        doc.RootElement.GetProperty("message").GetString()));
+                                    break;
+
+                                    // Handle other text messages if needed
                             }
-                        }
-                        else
-                        {
-                            // Extract chunk index from first 4 bytes
+                            break;
+
+                        case WebSocketMessageType.Binary:
+                            // Ignore empty frames
+                            if (data.Length <= 4) break;
+
+                            // Extract chunk index
                             int index = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
                             var chunk = new byte[data.Length - 4];
                             Array.Copy(data, 4, chunk, 0, chunk.Length);
                             chunks[index] = chunk;
-                        }
-                    }
-                    else if (msgType == WebSocketMessageType.Close)
-                    {
-                        tcs.TrySetException(new Exception("WebSocket closed during file download"));
+                            break;
+
+                        case WebSocketMessageType.Close:
+                            tcs.TrySetException(new Exception("WebSocket closed during file download"));
+                            break;
                     }
                 }
             }
@@ -396,275 +390,151 @@ public class DeviceWebSocketHandler
                 _pendingRequests.TryRemove(("FILE", deviceId), out _);
             }
         });
-
-        // Await the final file result and unbox
         var resultObj = await tcs.Task;
         return (FileDownloadResult)resultObj;
+        //return await tcs.Task;
     }
-    //public async Task<FileDownloadResult> DownloadFileAsync(string deviceId, string fileName, string fileId)
-    //{
-    //    var ws = _deviceManager.GetDevice(deviceId)?.Socket
-    //             ?? throw new Exception("Device not connected.");
 
-    //    var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-    //    var chunks = new ConcurrentDictionary<int, byte[]>();
-    //    var failedChunks = new HashSet<int>();
-    //    bool fileEndReceived = false;
-    //    bool emptyFrameReceived = false;
-    //    string? receivedFileName = null;
-
-    //    _pendingRequests[("FILE", deviceId)] = tcs;
-
-    //    // Send REQUEST_FILE
-    //    var requestJson = $"{{\"type\":\"REQUEST_FILE\",\"filename\":\"{fileName}\"}}";
-    //    await ws.SendAsync(Encoding.UTF8.GetBytes(requestJson), WebSocketMessageType.Text, true, CancellationToken.None);
-
-    //    while (!tcs.Task.IsCompleted)
+    //    public async Task<FileDownloadResult> DownloadFileAsync(string deviceId, string fileName, string fileId)
     //    {
-    //        var (msgType, data) = await ReceiveFullMessage(ws, CancellationToken.None);
+    //        var ws = _deviceManager.GetDevice(deviceId)?.Socket
+    //                 ?? throw new Exception("Device not connected.");
 
-    //        if (msgType == WebSocketMessageType.Text)
+    //        // Use TaskCompletionSource<object> to match _pendingRequests dictionary
+    //        var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+    //        var chunks = new ConcurrentDictionary<int, byte[]>();
+    //        var failedChunks = new HashSet<int>();
+    //        bool fileEnd = false;
+    //        string? receivedFileName = null;
+    //        var device = _deviceManager.GetDevice(deviceId);
+    //        // Register pending request (boxed)
+    //        _pendingRequests[("FILE", deviceId)] = tcs;
+
+    //        // Send REQUEST_FILE to device
+    //        var requestJson = $"{{\"type\":\"REQUEST_FILE\",\"filename\":\"{fileName}\"}}";
+    //        await ws.SendAsync(Encoding.UTF8.GetBytes(requestJson), WebSocketMessageType.Text, true, CancellationToken.None);
+
+    //        _ = Task.Run(async () =>
     //        {
-    //            var msg = Encoding.UTF8.GetString(data);
-    //            using var doc = JsonDocument.Parse(msg);
-    //            var type = doc.RootElement.GetProperty("type").GetString();
-
-    //            switch (type)
+    //            try
     //            {
-    //                case "FILE_START":
-    //                    receivedFileName = doc.RootElement.GetProperty("filename").GetString();
-    //                    var ack = "{\"type\":\"FILE_START_ACK\"}";
-    //                    await ws.SendAsync(Encoding.UTF8.GetBytes(ack), WebSocketMessageType.Text, true, CancellationToken.None);
-    //                    break;
+    //                while (!tcs.Task.IsCompleted)
+    //                {
+    //                    var (msgType, data) = await ReceiveFullMessage(ws, CancellationToken.None);
 
-    //                case "FILE_END":
-    //                    fileEndReceived = true;
-    //                    break;
-
-    //                case "ack":
-    //                    // Only complete if both FILE_END and empty binary frame are received
-    //                    if (fileEndReceived && emptyFrameReceived && !tcs.Task.IsCompleted)
+    //                    if (msgType == WebSocketMessageType.Text)
     //                    {
-    //                        var fileData = chunks.OrderBy(c => c.Key).SelectMany(c => c.Value).ToArray();
-    //                        tcs.TrySetResult((object)new FileDownloadResult
+    //                        if (data.Length == 0 || data[0] == 0x00)
     //                        {
-    //                            FileName = receivedFileName ?? fileName,
-    //                            Data = fileData
-    //                        });
+    //                            continue;
+    //                        }
+    //                        var msg = Encoding.UTF8.GetString(data);
+    //                        using var doc = JsonDocument.Parse(msg);
+    //                        var type = doc.RootElement.GetProperty("type").GetString();
 
-    //                        var complete = $"{{\"type\":\"COMPLETE\",\"fileId\":{fileId}}}";
-    //                        await ws.SendAsync(Encoding.UTF8.GetBytes(complete), WebSocketMessageType.Text, true, CancellationToken.None);
+    //                        switch (type)
+    //                        {
+    //                            case "FILE_START":
+    //                                receivedFileName = doc.RootElement.GetProperty("filename").GetString();
+    //                                var ack = "{\"type\":\"FILE_START_ACK\"}";
+    //                                await ws.SendAsync(Encoding.UTF8.GetBytes(ack), WebSocketMessageType.Text, true, CancellationToken.None);
+    //                                break;
+
+    //                            case "FILE_END":
+    //                                fileEnd = true;
+
+    //                                // If no missing chunks, we can assemble the file immediately
+    //                                if (failedChunks.Count == 0 && !tcs.Task.IsCompleted)
+    //                                {
+    //                                    var fileData = chunks.OrderBy(c => c.Key).SelectMany(c => c.Value).ToArray();
+    //                                    tcs.TrySetResult((object)new FileDownloadResult
+    //                                    {
+    //                                        FileName = receivedFileName ?? fileName,
+    //                                        Data = fileData
+    //                                    });
+
+    //                                    // Send COMPLETE to device
+    //                                    var complete = $"{{\"type\":\"COMPLETE\",\"fileId\":{fileId}}}";
+    //                                    await ws.SendAsync(Encoding.UTF8.GetBytes(complete), WebSocketMessageType.Text, true, CancellationToken.None);
+    //                                }
+    //                                break;
+
+    //                            case "ack":
+    //                                // Optionally handle ACK messages; file may already be completed
+    //                                break;
+
+    //                            case "ERROR":
+    //                                tcs.TrySetException(new Exception("Device error: " + doc.RootElement.GetProperty("message").GetString()));
+    //                                break;
+    //                        }
     //                    }
-    //                    break;
+    //                    else if (msgType == WebSocketMessageType.Binary)
+    //                    {
+    //                        if (device.EmptyMessageRecieved)
+    //                        {
+    //                            // Empty binary frame signals secondary completion
+    //                            if (fileEnd)
+    //                            {
+    //                                if (failedChunks.Count == 0 && !tcs.Task.IsCompleted)
+    //                                {
+    //                                    var nonEmptyChunks = chunks
+    //                                        .Where(kvp => kvp.Value != null && kvp.Value.Length > 0)
+    //                                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    //                                    var fileData = nonEmptyChunks.OrderBy(c => c.Key).SelectMany(c => c.Value).ToArray();
+    //                                    tcs.TrySetResult((object)new FileDownloadResult
+    //                                    {
+    //                                        FileName = receivedFileName ?? fileName,
+    //                                        Data = fileData
+    //                                    });
 
-    //                case "ERROR":
-    //                    tcs.TrySetException(new Exception("Device error: " + doc.RootElement.GetProperty("message").GetString()));
-    //                    break;
-    //            }
-    //        }
-    //        else if (msgType == WebSocketMessageType.Binary)
-    //        {
-    //            if (data.Length == 0)
-    //            {
-    //                emptyFrameReceived = true;
-    //            }
-    //            else
-    //            {
-    //                int index = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
-    //                var chunk = new byte[data.Length - 4];
-    //                Array.Copy(data, 4, chunk, 0, chunk.Length);
-    //                chunks[index] = chunk;
-    //            }
+    //                                    var complete = $"{{\"type\":\"COMPLETE\",\"fileId\":{fileId}}}";
+    //                                    await ws.SendAsync(Encoding.UTF8.GetBytes(complete), WebSocketMessageType.Text, true, CancellationToken.None);
+    //                                }
+    //                                else if (failedChunks.Count > 0)
+    //                                {
+    //                                    // Retry missing chunks
+    //                                    string retryJson = JsonSerializer.Serialize(failedChunks);
+    //                                    var retrySend = $"{{\"type\":\"RETRY\",\"chunks\":{retryJson}}}";
+    //                                    await ws.SendAsync(Encoding.UTF8.GetBytes(retrySend), WebSocketMessageType.Text, true, CancellationToken.None);
 
-    //            // Check if we can complete after binary frame
-    //            if (fileEndReceived && emptyFrameReceived && !tcs.Task.IsCompleted)
-    //            {
-    //                var fileData = chunks.OrderBy(c => c.Key).SelectMany(c => c.Value).ToArray();
-    //                tcs.TrySetResult((object)new FileDownloadResult
-    //                {
-    //                    FileName = receivedFileName ?? fileName,
-    //                    Data = fileData
-    //                });
-
-    //                var complete = $"{{\"type\":\"COMPLETE\",\"fileId\":{fileId}}}";
-    //                await ws.SendAsync(Encoding.UTF8.GetBytes(complete), WebSocketMessageType.Text, true, CancellationToken.None);
+    //                                    // Clear failedChunks for next retry
+    //                                    failedChunks.Clear();
+    //                                }
+    //                            }
+    //                        }
+    //                        else
+    //                        {
+    //                            // Extract chunk index from first 4 bytes
+    //                            int index = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+    //                            var chunk = new byte[data.Length - 4];
+    //                            Array.Copy(data, 4, chunk, 0, chunk.Length);
+    //                            chunks[index] = chunk;
+    //                        }
+    //                    }
+    //                    else if (msgType == WebSocketMessageType.Close)
+    //                    {
+    //                        tcs.TrySetException(new Exception("WebSocket closed during file download"));
+    //                    }
+    //                }
     //            }
-    //        }
-    //        else if (msgType == WebSocketMessageType.Close)
-    //        {
-    //            tcs.TrySetException(new Exception("WebSocket closed during file download"));
-    //        }
+    //            catch (Exception ex)
+    //            {
+
+    //;                tcs.TrySetException(ex);
+    //            }
+    //            finally
+    //            {
+    //                _pendingRequests.TryRemove(("FILE", deviceId), out _);
+    //            }
+    //        });
+
+    //        // Await the final file result and unbox
+    //        var resultObj = await tcs.Task;
+    //        return (FileDownloadResult)resultObj;
     //    }
 
-    //    _pendingRequests.TryRemove(("FILE", deviceId), out _);
-    //    return (FileDownloadResult)await tcs.Task;
-    //}
 
 
-
-    #endregion
-
-
-    //#region Status
-    //public async Task StartReceiveLoopAsync(string deviceId, CancellationToken ct)
-    //{
-    //    var device = _deviceManager.GetDevice(deviceId);
-    //    var ws = device.Socket;
-    //    var buffer = new byte[16 * 1024];
-
-    //    try
-    //    {
-    //        while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
-    //        {
-    //            var jsonString = await ReceiveFullMessageAsync(ws, buffer, ct);
-
-    //            using var doc = JsonDocument.Parse(jsonString);
-    //            if (!doc.RootElement.TryGetProperty("type", out var typeProp)) continue;
-
-    //            var type = typeProp.GetString();
-
-    //            if (type == "STATUS")
-    //            {
-    //                var status = new DeviceStatusInfo
-    //                {
-    //                    Uptime = doc.RootElement.TryGetProperty("uptime", out var uptime) ? uptime.GetRawText() : null,
-    //                    Heap = doc.RootElement.TryGetProperty("heap", out var heap) ? heap.GetRawText() : null,
-    //                    Wifi_Rssi = doc.RootElement.TryGetProperty("wifi_rssi", out var rssi) ? rssi.GetRawText() : null,
-    //                    Wifi_Ip = doc.RootElement.TryGetProperty("wifi_ip", out var ip) ? ip.GetString() : null,
-    //                    Connected = doc.RootElement.TryGetProperty("connected", out var connected) && connected.GetBoolean()
-    //                };
-
-    //                device.Status = status;
-
-    //                // Resolve any waiting request
-    //                if (_pendingStatusRequests.TryRemove(device.Id, out var tcs))
-    //                    tcs.TrySetResult(status);
-    //            }
-    //            else if (type == "ERROR")
-    //            {
-    //                var errMsg = doc.RootElement.GetProperty("message").GetString();
-    //                if (_pendingStatusRequests.TryRemove(device.Id, out var tcs))
-    //                    tcs.TrySetException(new Exception(errMsg));
-    //            }
-    //        }
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Console.WriteLine($"Receive loop failed: {ex.Message}");
-    //    }
-    //}
-
-
-    //private async Task<string> ReceiveFullMessageAsync(WebSocket socket, byte[] buffer, CancellationToken ct)
-    //{
-    //    using var ms = new MemoryStream();
-    //    WebSocketReceiveResult result;
-    //    do
-    //    {
-    //        result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
-    //        if (result.MessageType == WebSocketMessageType.Close)
-    //            throw new WebSocketException("Socket closed while receiving message.");
-    //        ms.Write(buffer, 0, result.Count);
-    //    } while (!result.EndOfMessage);
-
-    //    return Encoding.UTF8.GetString(ms.ToArray());
-
-    //}
-
-    //public async Task<DeviceStatusInfo> RequestDeviceStatusAsync(string deviceId)
-    //{
-    //    var device = _deviceManager.GetDevice(deviceId);
-    //    if (device == null || device.Socket.State != WebSocketState.Open)
-    //        throw new Exception("Device not connected.");
-
-    //    var tcs = new TaskCompletionSource<DeviceStatusInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-    //    _pendingStatusRequests[device.Id] = tcs;
-
-    //    var requestJson = "{\"type\":\"STATUS\"}";
-    //    await device.Socket.SendAsync(
-    //        Encoding.UTF8.GetBytes(requestJson),
-    //        WebSocketMessageType.Text,
-    //        true,
-    //        CancellationToken.None);
-
-    //    return await tcs.Task; // Will complete when receive loop dispatches
-    //}
-
-
-
-    //#endregion
-
-    //#region File List
-    //// for file list 
-
-    //public async Task<List<FileInfoModel>> RequestFileListAsync(string deviceId)
-    //{
-    //    return await SendFileListRequestAsync(deviceId, "{\"type\":\"LIST_FILES\"}", doc =>
-    //    {
-    //        var filesList = new List<FileInfoModel>();
-    //        if (doc.RootElement.ValueKind == JsonValueKind.Array)
-    //        {
-    //            foreach (var f in doc.RootElement.EnumerateArray())
-    //            {
-    //                filesList.Add(new FileInfoModel
-    //                {
-    //                    Name = f.GetProperty("name").GetString(),
-    //                    Size = f.GetProperty("size").GetInt32()
-    //                });
-    //            }
-    //        }
-    //        return filesList;
-    //    });
-    //}
-
-    //private async Task<T> SendFileListRequestAsync<T>(
-    //string deviceId,
-    //string requestJson,
-    //Func<JsonDocument, T> parseResponse)
-    //{
-    //    var device = _deviceManager.GetDevice(deviceId);
-    //    if (device == null || device.Socket.State != WebSocketState.Open)
-    //        throw new Exception("Device not connected.");
-
-    //    var ws = device.Socket;
-    //    var tcs = new TaskCompletionSource<T>();
-    //    var buffer = new byte[16 * 1024];
-
-    //    async Task HandleResponse(WebSocketReceiveResult result)
-    //    {
-    //        if (result.MessageType != WebSocketMessageType.Text) return;
-
-    //        var msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
-    //        using var doc = JsonDocument.Parse(msg);
-
-    //        if (doc.RootElement.TryGetProperty("type", out var typeProp) &&
-    //            typeProp.GetString() == "ERROR")
-    //        {
-    //            var errMsg = doc.RootElement.GetProperty("message").GetString();
-    //            tcs.TrySetException(new Exception(errMsg));
-    //        }
-    //        else
-    //        {
-    //            var parsed = parseResponse(doc);
-    //            tcs.TrySetResult(parsed);
-    //        }
-    //    }
-
-    //    // Send request
-    //    await ws.SendAsync(Encoding.UTF8.GetBytes(requestJson),
-    //        WebSocketMessageType.Text, true, CancellationToken.None);
-
-    //    // Wait for response
-    //    while (!tcs.Task.IsCompleted)
-    //    {
-    //        var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-    //        await HandleResponse(result);
-    //    }
-
-    //    return await tcs.Task;
-    //}
-
-    //#endregion
 
     // other 
     public async Task HandleAsync(WebSocket socket, string deviceId)
@@ -693,12 +563,14 @@ public class DeviceWebSocketHandler
                 else if (result.MessageType == WebSocketMessageType.Binary)
                 {
                     // Handle file chunks (not shown here)
+                    //var device = _deviceManager.GetDevice(deviceId);
+                    //_ = Task.Run(() => StartReceiveLoopAsync(device, CancellationToken.None));
                 }
             }
         }
         finally
         {
-            _deviceManager.RemoveDevice(deviceId);
+            //_deviceManager.RemoveDevice(deviceId);
         }
     }
 
@@ -957,3 +829,4 @@ public class DeviceWebSocketHandler
 //         await ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
 //     }
 // }
+#endregion

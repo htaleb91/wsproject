@@ -154,7 +154,8 @@ public class DeviceController : Controller
         }
         catch (Exception ex)
         {
-           
+            //Console.WriteLine("Iam Here");
+            Console.WriteLine(ex.Message);
             return StatusCode(500, $"Download failed: {ex.Message}");
         }
     }
@@ -291,7 +292,17 @@ public class DeviceController : Controller
         try
         {
             var response = await _deviceWebSocketHandler.DisconnectDeviceAsync(deviceId);
-            return Ok(new { success = response.Success, message = response.Message });
+            if(response.Success)
+            {
+                _deviceManager.RemoveDevice(deviceId);
+                return Ok(new { success = response.Success, message = response.Message });
+
+            }
+            else
+            {
+                throw new Exception(response.Message);
+            }
+
         }
         catch (Exception ex)
         {
