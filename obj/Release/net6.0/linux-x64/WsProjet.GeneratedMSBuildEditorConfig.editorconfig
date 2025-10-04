@@ -9,41 +9,41 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = WsProjet
 build_property.RootNamespace = WsProjet
-build_property.ProjectDir = D:\wsproject\WsProjet\
+build_property.ProjectDir = G:\webSocket\wsproject\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 6.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = D:\wsproject\WsProjet
+build_property.MSBuildProjectDirectory = G:\webSocket\wsproject
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 6.0
 build_property.EnableCodeStyleSeverity = 
 
-[D:/wsproject/WsProjet/Views/Device/Files.cshtml]
+[G:/webSocket/wsproject/Views/Device/Files.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGV2aWNlXEZpbGVzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/wsproject/WsProjet/Views/Device/Index.cshtml]
+[G:/webSocket/wsproject/Views/Device/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGV2aWNlXEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/wsproject/WsProjet/Views/Shared/_LayoutNew.cshtml]
+[G:/webSocket/wsproject/Views/Shared/_LayoutNew.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXROZXcuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/wsproject/WsProjet/Views/Shared/_ValidationScriptsPartial.cshtml]
+[G:/webSocket/wsproject/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/wsproject/WsProjet/Views/_ViewImports.cshtml]
+[G:/webSocket/wsproject/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/wsproject/WsProjet/Views/_ViewStart.cshtml]
+[G:/webSocket/wsproject/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/wsproject/WsProjet/Views/Shared/_Layout.cshtml]
+[G:/webSocket/wsproject/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-zmbl5yqgip

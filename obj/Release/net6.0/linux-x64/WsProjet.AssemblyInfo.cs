@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WsProjet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+78d088b14f25fc7d8f820d78af217d1c3210d13a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a24c78d9f3a9a194799511e8a0b45a0de7dd3429")]
 [assembly: System.Reflection.AssemblyProductAttribute("WsProjet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WsProjet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
