@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WsProjet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+98d6a53e6e49a7dac6fffef6d36d339efd4a15f9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9a97aa22924abda008805c97270ed2f8e857dc4b")]
 [assembly: System.Reflection.AssemblyProductAttribute("WsProjet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WsProjet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
