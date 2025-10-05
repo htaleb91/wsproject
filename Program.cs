@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.WebSockets;
+using WsProjet.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Register services
 builder.Services.AddSingleton<DeviceManager>();
+builder.Services.AddSignalR();
 builder.Services.AddSingleton<DeviceWebSocketHandler>();
 builder.Services.AddControllersWithViews();
 
@@ -21,6 +24,8 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Device}/{action=Index}/{id?}");
 
+// Map SignalR hub
+app.MapHub<DownloadHub>("/downloadHub");
 // WebSocket endpoint
 app.Map("/ws/{deviceId}", async context =>
 {

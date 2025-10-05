@@ -74,6 +74,7 @@ public class DeviceController : Controller
         }
         catch (Exception ex)
         {
+            Console.WriteLine("exception");
             return StatusCode(500, $"Failed to get files: {ex.Message}");
         }
     }
@@ -148,7 +149,7 @@ public class DeviceController : Controller
             return StatusCode(500, new { success = false, message = ex.Message });
         }
     }
-
+        
     // Show paginated file list in view
     public IActionResult Files(string deviceId, int page = 1, int pageSize = 10)
     {

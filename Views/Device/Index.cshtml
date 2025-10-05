@@ -2,7 +2,22 @@
     ViewData["Title"] = "Dashboard";
     Layout = "~/Views/Shared/_LayoutNew.cshtml";
 }
-
+<style>
+    .download-btn {
+        position: relative;
+        overflow: hidden;
+    }
+    .download-btn .progress-overlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(0, 200, 0, 0.2); /* semi-transparent green */
+        pointer-events: none;
+        transition: width 0.2s ease;
+    }
+</style>
 <div class="row g-4 justify-content-center w-100">
 
     <!-- Device Actions Card -->
@@ -95,6 +110,17 @@
         let selectedDevice = null;
         let filesList = [];
 
+
+       // const progressBar = document.getElementById("downloadProgress");
+       //  const progressText = document.getElementById("progressText");
+
+       //  connection.on("DownloadProgress", (deviceId, received, total) => {
+       //      const percent = Math.floor((received / total) * 100);
+       //      progressBar.value = percent;
+       //      progressText.innerText = percent + "%";
+       //  });
+
+
         async function loadDevices() {
             try {
                 const res = await fetch("/Device/connected");
@@ -134,7 +160,7 @@
              try {
                 const res = await fetch(`/Device/localstatus/${selectedDevice}`);
                 console.log("inside update local status")
-                if (!res.ok) throw new Error("Failed to fetch status");
+                if (!res.ok) throw new Error(`Failed to fetch status: ${res.message}`);
                 const status = await res.json();
 
 
@@ -153,7 +179,7 @@
             try {
                 const res = await fetch(`/Device/status/${selectedDevice}`);
                 console.log("inside update status")
-                if (!res.ok) throw new Error("Failed to fetch status");
+                if (!res.ok) throw new Error(`Failed to fetch status: ${res.message}`);
                 const status = await res.json();
                 
 
@@ -173,7 +199,7 @@
             try {
                 const res = await fetch(`/Device/files/${selectedDevice}`);
                 console.log("inside get files");
-                if (!res.ok) throw new Error("Failed to fetch files");
+                if (!res.ok) throw new Error(`Failed to fetch files: ${res.message}`);
                 filesList = await res.json();
 
                 filesTable.innerHTML = "";
@@ -185,11 +211,11 @@
                                                                 <td>${f.size}</td>
                                                                 <td>
                                                                     <div class="d-flex gap-2 justify-content-center">
-                                                                        <button class="btn btn-sm btn-outline-success" onclick="downloadFile('${f.name}')">
-                                                                            <i class="bi bi-download"></i> Download
+                                                                         <button class="btn btn-sm btn-outline-success download-btn" onclick="downloadFile('${f.name}')" data-filename="${f.name}">
+                                                                            <i class="bi bi-download"></i> Download <span class="progress-overlay"></span>
                                                                         </button>
                                                                         <button class="btn btn-sm btn-outline-danger" onclick="deleteFile('${f.name}', ${i})">
-                                                                            <i class="bi bi-trash"></i> Delete
+                                                                            <i class="bi bi-trash"></i> Delete 
                                                                         </button>
                                                                     </div>
                                                                 </td>
@@ -203,26 +229,64 @@
             }
         }
 
-        async function downloadFile(fileName) {
+          async function downloadFile(fileName) {
             try {
                 const res = await fetch(`/Device/Download?deviceId=${selectedDevice}&filename=${fileName}`);
-                if (!res.ok) throw new Error("Download failed");
+                if (!res.ok) throw new Error(`Download failed: ${res.statusText}`);
 
-                const blob = await res.blob();
+                const total = +res.headers.get("Content-Length") || 0;
+                let loaded = 0;
+
+                const reader = res.body.getReader();
+                const chunks = [];
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    chunks.push(value);
+                    loaded += value.length;
+
+                    if (total) {
+                        const percent = Math.round((loaded / total) * 100);
+                        updateDownloadProgress(fileName, percent); // <-- your UI update
+                    }
+                }
+
+                const blob = new Blob(chunks);
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
                 link.download = fileName;
                 link.click();
-                showToast(`Downloading ${fileName}`, "success");
+                showToast(`Downloaded ${fileName}`, "success");
+
             } catch (err) {
                 showToast(err.message, "error");
-            }
+                 } finally {
+            hideDownloadOverlay(); // <-- hide overlay when done--/>
         }
+        }
+                function showDownloadOverlay() {
+            const overlay = document.getElementById("downloadOverlay");
+            if (overlay) overlay.style.display = "block";
+        }
+
+        function hideDownloadOverlay() {
+            const overlay = document.getElementById("downloadOverlay");
+            if (overlay) overlay.style.display = "none";
+        }
+
+        function updateDownloadProgress(fileName, percent) {
+            const btn = document.querySelector(`[data-filename="${fileName}"]`);
+            const overlay = btn.querySelector(".progress-overlay");
+            overlay.style.width = percent + "%";
+        }
+
 
         async function deleteFile(fileName, index) {
             try {
                 const res = await fetch(`/Device/files?deviceId=${selectedDevice}&fileName=${fileName}`, { method: "POST" });
-                if (!res.ok) throw new Error("Delete failed");
+                if (!res.ok) throw new Error(`Delete failed: ${res.message}`);
                 filesList.splice(index, 1);
                 getFiles();
                 showToast(`Deleted ${fileName}`, "success");
@@ -234,7 +298,7 @@
             try {
                 const res = await fetch(`/Device/disconnect?deviceId=${selectedDevice}`, { method: "POST" });
                 
-                if (!res.ok) throw new Error(res.message);
+                if (!res.ok) throw new Error(`Errorr: ${res.message}`);
                 @* filesList.splice(index, 1);
                 getFiles(); *@
                 loadDevices();
@@ -249,7 +313,7 @@
         async function deleteAllFiles() {
             try {
                 const res = await fetch(`/Device/DeleteAllFiles?deviceId=${selectedDevice}`, { method: "POST" });
-                if (!res.ok) throw new Error(`Delete all failed${res.message}`);
+                if (!res.ok) throw new Error(`Delete all failed: ${res.message}`);
                 filesList = [];
                 filesTable.innerHTML = "";
                 showToast("All files deleted", "success");
@@ -263,5 +327,34 @@
         btnDeleteAll.addEventListener("click", deleteAllFiles);
 
         document.getElementById("btnDisconnect").addEventListener("click", disconnectDevice);
+
+         
+
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/downloadHub")
+            .build();
+
+        connection.on("ReceiveDownloadProgress", (deviceId, fileName, percent) => {
+            // console.log(`Progress from ${deviceId}: ${percent}%`);
+            const btn = document.querySelector(`button[data-filename='${fileName}']`);
+            if(btn){
+
+                btn.style.border = `3px solid #198754`;
+                btn.style.background = `linear-gradient(to right, green ${percent}%, transparent ${percent}%)`;
+                btn.textContent = `Downloading ${percent}%`;
+                btn.style.color = "black";
+                if(percent === 100){
+                    btn.innerHTML = `<i class="bi bi-download"></i> Download`;
+                    btn.style.border = "";
+                    btn.style.background = "";
+                    btn.style.color = "#198754";
+                }
+            }
+        });
+
+        connection.start();
     </script>
 }

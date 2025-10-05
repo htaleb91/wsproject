@@ -2,18 +2,25 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text;
+using System.Buffers.Binary;
+using System;
+using Microsoft.AspNetCore.SignalR;
+using WsProjet.Services;
+using System.Runtime.CompilerServices;
 
 public class DeviceWebSocketHandler
 {
     private readonly DeviceManager _deviceManager;
+    private readonly IHubContext<DownloadHub> _hub;
     private readonly ConcurrentDictionary<(string RequestType, string DeviceId), TaskCompletionSource<object>> _pendingRequests = new();
 
     // Active file downloads
     private readonly ConcurrentDictionary<string, FileDownloadSession> _downloads = new();
 
-    public DeviceWebSocketHandler(DeviceManager deviceManager)
+    public DeviceWebSocketHandler(DeviceManager deviceManager, IHubContext<DownloadHub> hub)
     {
         _deviceManager = deviceManager;
+        _hub = hub;
     }
 
     public async Task StartReceiveLoopAsync(DeviceInfo device, CancellationToken ct)
@@ -42,7 +49,7 @@ public class DeviceWebSocketHandler
             if (result.MessageType == WebSocketMessageType.Text)
                 HandleTextMessage(device, Encoding.UTF8.GetString(data));
             else if (result.MessageType == WebSocketMessageType.Binary)
-                HandleBinaryMessage(device, data);
+                await HandleBinaryMessage(device, data);
         }
     }
     private async Task HandleTextMessage(DeviceInfo device, string msg)
@@ -93,7 +100,10 @@ public class DeviceWebSocketHandler
                         Console.WriteLine($"File transfer starting: {filename} ({size} bytes)");
 
                         // <<< ADDED: start a new download session
-                        var session = new FileDownloadSession(filename);
+                        var session = new FileDownloadSession(filename)
+                        {
+                            FileSize = size
+                        };
                         _downloads[device.Id] = session;
 
                         CompleteRequest(("DOWNLOAD", device.Id), true); // optional if you want an ack
@@ -152,17 +162,26 @@ public class DeviceWebSocketHandler
         }
     }
 
-    private void HandleBinaryMessage(DeviceInfo device, byte[] data)
+    private async Task HandleBinaryMessage(DeviceInfo device, byte[] data)
     {
         if (!_downloads.TryGetValue(device.Id, out var session))
             return;
 
-        if (data.Length <= 4) return;
-        int index = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+        if (data.Length <= 4) return ;
+        int index = BinaryPrimitives.ReadInt32BigEndian(data.AsSpan(0, 4));
         var chunk = new byte[data.Length - 4];
         Array.Copy(data, 4, chunk, 0, chunk.Length);
         session.Chunks[index] = chunk;
         Console.WriteLine($"Received chunk {index}, size={chunk.Length}"); // <<< ADDED: debug
+
+        // Report progress via SignalR
+        //int totalChunks = (int)Math.Ceiling((double)session.FileSize / session.ChunkSize);
+        //int percent = (int)((session.Chunks.Count / (double)totalChunks) * 100);
+        int receivedBytes = session.Chunks.Sum(c => c.Value.Length);
+        int percent = session.FileSize > 0 ? (int)((receivedBytes / (double)session.FileSize) * 100) : 0;
+        // Push to all clients (or filter by device/user if needed)
+        await _hub.Clients.All.SendAsync("ReceiveDownloadProgress", device.Id, session.Filename, percent);
+
     }
 
     // --- Helpers ---
@@ -192,7 +211,7 @@ public class DeviceWebSocketHandler
         var tcs = new TaskCompletionSource<object>();
         _pendingRequests[("STATUS", deviceId)] = tcs;
 
-        var msg = JsonSerializer.Serialize(new { type = "GET_STATUS" });
+        var msg = JsonSerializer.Serialize(new { type = "STATUS" });
         var buffer = Encoding.UTF8.GetBytes(msg);
         await device.Socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
 
@@ -288,6 +307,8 @@ public class DeviceWebSocketHandler
     private class FileDownloadSession
     {
         public string Filename { get; }
+        public int FileSize { get; set; }
+        public int ChunkSize { get; set; }
         public ConcurrentDictionary<int, byte[]> Chunks { get; } = new();
         public FileDownloadSession(string filename) => Filename = filename;
 

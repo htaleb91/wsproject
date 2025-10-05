@@ -78,6 +78,7 @@ nunit-*.xml
 # Build Folders
 bin/
 obj/
+Publish/
 
 # Approval Tests result files
 *.received.*
